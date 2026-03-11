@@ -9,7 +9,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 
 object RecommendationNotifier {
-    private const val CHANNEL_ID = "apphub_recommendations"
+    private const val CHANNEL_ID = "alphaai_recommendations"
 
     fun showRecommendation(context: Context, action: Action) {
         val notificationManager =
@@ -29,7 +29,7 @@ object RecommendationNotifier {
         )
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setContentTitle("AppHub 建议")
+            .setContentTitle("AlphaAI Suggestion")
             .setContentText(action.content)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentIntent(pendingIntent)
@@ -43,7 +43,7 @@ object RecommendationNotifier {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "AppHub 推荐",
+                "AlphaAI Recommendations",
                 NotificationManager.IMPORTANCE_DEFAULT
             )
             manager.createNotificationChannel(channel)

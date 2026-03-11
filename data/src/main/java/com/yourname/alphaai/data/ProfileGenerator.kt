@@ -1,6 +1,6 @@
 package com.yourname.alphaai.data
 
-class ProfileGenerator(private val database: AppHubDatabase) {
+class ProfileGenerator(private val database: AlphaAIDatabase) {
 
     suspend fun generateBasicProfile() {
         val recent = database.userActionDao().getRecentActions(200)

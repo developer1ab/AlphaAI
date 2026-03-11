@@ -8,12 +8,12 @@ import kotlinx.coroutines.withContext
 
 class ToastSkill(private val context: Context) : Skill {
     override val id = "system.toast"
-    override val name = "显示提示"
-    override val description = "在屏幕上显示一条短暂的消息"
+    override val name = "Show toast"
+    override val description = "Display a short on-screen message"
 
     override suspend fun execute(params: Map<String, Any>): Result<Map<String, Any>> {
         return try {
-            val message = params["message"] as? String ?: "默认消息"
+            val message = params["message"] as? String ?: "Default message"
             withContext(Dispatchers.Main) {
                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
             }

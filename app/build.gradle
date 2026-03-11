@@ -3,12 +3,43 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
+def localProps = new Properties()
+def localPropsFile = rootProject.file("local.properties")
+if (localPropsFile.exists()) {
+    localPropsFile.withInputStream { stream ->
+        localProps.load(stream)
+    }
+}
+
+def cloudGatewayBaseUrl = (
+        project.findProperty("CLOUD_GATEWAY_BASE_URL")
+                ?: localProps.getProperty("CLOUD_GATEWAY_BASE_URL")
+                ?: "https://alphaai-gateway.developer1-ad7.workers.dev"
+).toString()
+
+def cloudGatewayApiKey = (
+        project.findProperty("CLOUD_GATEWAY_API_KEY")
+                ?: localProps.getProperty("CLOUD_GATEWAY_API_KEY")
+                ?: ""
+).toString()
+
+def accessibilitySimulationEnabled = (
+    project.findProperty("ACCESSIBILITY_SIMULATION_ENABLED")
+        ?: localProps.getProperty("ACCESSIBILITY_SIMULATION_ENABLED")
+        ?: "false"
+).toString().toBoolean()
+
+def asBuildConfigString = { value ->
+    '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"'
+}
+
 android {
     namespace 'com.example.alphaai'
     compileSdk 33
 
     buildFeatures {
         compose true
+        buildConfig true
     }
 
     composeOptions {
@@ -21,6 +52,9 @@ android {
         targetSdk 33
         versionCode 1
         versionName "1.0"
+        buildConfigField "String", "CLOUD_GATEWAY_BASE_URL", asBuildConfigString(cloudGatewayBaseUrl)
+        buildConfigField "String", "CLOUD_GATEWAY_API_KEY", asBuildConfigString(cloudGatewayApiKey)
+        buildConfigField "boolean", "ACCESSIBILITY_SIMULATION_ENABLED", accessibilitySimulationEnabled.toString()
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }

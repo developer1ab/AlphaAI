@@ -3,7 +3,7 @@ package com.yourname.alphaai.recommendation
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.yourname.alphaai.data.AppHubDatabase
+import com.yourname.alphaai.data.AlphaAIDatabase
 import com.yourname.alphaai.data.RecommendationLog
 
 class RecommendationWorker(
@@ -12,7 +12,7 @@ class RecommendationWorker(
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
-        val database = AppHubDatabase.getInstance(applicationContext)
+        val database = AlphaAIDatabase.getInstance(applicationContext)
         val rules = RuleLoader.loadRules(applicationContext)
         if (rules.isEmpty()) return Result.success()
 

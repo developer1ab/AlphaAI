@@ -1,11 +1,11 @@
 package com.yourname.alphaai
 
 import android.app.Application
-import com.yourname.alphaai.data.AppHubDatabase
+import com.yourname.alphaai.data.AlphaAIDatabase
 import com.yourname.alphaai.recommendation.RecommendationScheduler
 
-class AppHubApplication : Application() {
-    val database: AppHubDatabase by lazy { AppHubDatabase.getInstance(this) }
+class AlphaAIApplication : Application() {
+    val database: AlphaAIDatabase by lazy { AlphaAIDatabase.getInstance(this) }
 
     override fun onCreate() {
         super.onCreate()

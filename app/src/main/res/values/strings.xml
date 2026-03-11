@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">AlphaAI</string>
+    <string name="accessibility_service_description">AlphaAI accessibility prototype for optional screen simulation.</string>
 </resources>

@@ -1,0 +1,32 @@
+name = "alphaai-gateway"
+main = "src/index.js"
+compatibility_date = "2026-03-11"
+workers_dev = true
+
+[vars]
+# App-side shared API key.
+APP_GATEWAY_API_KEY = "replace-with-your-gateway-key"
+
+# Example service: Weather API.
+WEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5/"
+WEATHER_API_KEY = "replace-with-weather-api-key"
+WEATHER_AUTH_MODE = "query"
+WEATHER_API_KEY_PARAM = "appid"
+
+# Example service: Translation API.
+TRANSLATE_BASE_URL = "https://api-free.deepl.com/v2/"
+TRANSLATE_API_KEY = "replace-with-translation-api-key"
+TRANSLATE_AUTH_MODE = "header"
+TRANSLATE_API_KEY_HEADER = "Authorization"
+
+# Example service: News API.
+NEWS_BASE_URL = "https://newsapi.org/v2/"
+NEWS_API_KEY = "replace-with-news-api-key"
+NEWS_AUTH_MODE = "query"
+NEWS_API_KEY_PARAM = "apiKey"
+
+# Example service: Stock API.
+STOCK_BASE_URL = "https://www.alphavantage.co/query"
+STOCK_API_KEY = "replace-with-stock-api-key"
+STOCK_AUTH_MODE = "query"
+STOCK_API_KEY_PARAM = "apikey"

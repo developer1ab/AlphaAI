@@ -26,14 +26,14 @@ class CameraSkill(
     private val lifecycleOwner: LifecycleOwner
 ) : Skill {
     override val id = "camera.take_photo"
-    override val name = "拍照"
-    override val description = "调用相机拍摄一张照片并保存"
+    override val name = "Take photo"
+    override val description = "Capture and save a photo with the camera"
 
     override suspend fun execute(params: Map<String, Any>): Result<Map<String, Any>> {
         val cameraExecutor: ExecutorService = Executors.newSingleThreadExecutor()
         return try {
             if (!hasCameraPermission()) {
-                Result.failure(SecurityException("缺少相机权限"))
+                Result.failure(SecurityException("Camera permission is required."))
             } else {
                 val photoUri = takePhoto(cameraExecutor)
                 Result.success(mapOf("uri" to photoUri.toString()))

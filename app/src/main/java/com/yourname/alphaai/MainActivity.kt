@@ -3,13 +3,11 @@ package com.yourname.alphaai
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
-import androidx.activity.result.contract.ActivityResultContracts
+import com.example.alphaai.BuildConfig
 import androidx.activity.ComponentActivity
-import androidx.activity.viewModels
 import androidx.activity.compose.setContent
-import androidx.lifecycle.lifecycleScope
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -17,41 +15,45 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import com.yourname.alphaai.core.AppResolver
 import com.yourname.alphaai.core.ExecutionEvent
 import com.yourname.alphaai.core.SimpleScheduler
-import com.yourname.alphaai.data.AppHubDatabase
 import com.yourname.alphaai.data.RecommendationLog
 import com.yourname.alphaai.data.UserAction
+import com.yourname.alphaai.accessibility.AccessibilitySkill
 import com.yourname.alphaai.recommendation.RecommendationScheduler
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import com.yourname.alphaai.skills.CameraSkill
+import com.yourname.alphaai.skills.CloudApiSkill
 import com.yourname.alphaai.skills.IntentSkill
 import com.yourname.alphaai.skills.LocationSkill
 import com.yourname.alphaai.skills.NotificationSkill
 import com.yourname.alphaai.skills.ToastSkill
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -68,7 +70,16 @@ class MainActivity : ComponentActivity() {
 
     private val appResolver by lazy { AppResolver(this) }
     private val intentSkill by lazy { IntentSkill(this) }
-    private val database by lazy { (application as AppHubApplication).database }
+    private val accessibilitySkill by lazy {
+        AccessibilitySkill(this, BuildConfig.ACCESSIBILITY_SIMULATION_ENABLED)
+    }
+    private val cloudApiSkill by lazy {
+        CloudApiSkill(
+            gatewayBaseUrl = BuildConfig.CLOUD_GATEWAY_BASE_URL,
+            userApiKey = BuildConfig.CLOUD_GATEWAY_API_KEY
+        )
+    }
+    private val database by lazy { (application as AlphaAIApplication).database }
     private val historyViewModel: HistoryViewModel by viewModels {
         HistoryViewModelFactory(database)
     }
@@ -76,7 +87,6 @@ class MainActivity : ComponentActivity() {
         RecommendationLogViewModelFactory(database)
     }
 
-    // 初始化调度器并注册技能
     private val scheduler by lazy {
         val skills = mapOf(
             "system.toast" to ToastSkill(this),
@@ -84,7 +94,9 @@ class MainActivity : ComponentActivity() {
             "location.get" to LocationSkill(this),
             "notification.show" to NotificationSkill(this),
             "intent.execute" to intentSkill,
-            "intent.launch" to intentSkill
+            "intent.launch" to intentSkill,
+            "accessibility.control" to accessibilitySkill,
+            "cloud.api" to cloudApiSkill
         )
         SimpleScheduler(skills, appResolver, database)
     }
@@ -98,9 +110,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             val recentActions by historyViewModel.recentActions.observeAsState(emptyList())
             val recentRecommendationLogs by recommendationLogViewModel.recentLogs.observeAsState(emptyList())
-            AppHubTheme {
+            AlphaAITheme {
                 MainScreen(
                     scheduler = scheduler,
+                    accessibilityFeatureEnabled = BuildConfig.ACCESSIBILITY_SIMULATION_ENABLED,
                     hasLocationPermission = ::hasLocationPermission,
                     requestLocationPermission = ::ensureLocationPermission,
                     clearLearningData = ::clearLearningData,
@@ -176,6 +189,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainScreen(
     scheduler: SimpleScheduler,
+    accessibilityFeatureEnabled: Boolean,
     hasLocationPermission: () -> Boolean,
     requestLocationPermission: () -> Unit,
     clearLearningData: suspend () -> Unit,
@@ -184,10 +198,24 @@ fun MainScreen(
     recentRecommendationLogs: List<RecommendationLog>
 ) {
     var inputText by remember { mutableStateOf("") }
-    var outputText by remember { mutableStateOf("等待指令...") }
+    var outputText by remember { mutableStateOf("Waiting for command...") }
     var showHistoryDialog by remember { mutableStateOf(false) }
     var showRecommendationDialog by remember { mutableStateOf(false) }
+    var showAccessibilityRiskDialog by remember { mutableStateOf(false) }
+    var pendingCommand by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
+
+    fun executeCommand(command: String) {
+        coroutineScope.launch {
+            scheduler.submit(command).collect { event ->
+                outputText = when (event) {
+                    is ExecutionEvent.Started -> "Running: ${event.skillId}"
+                    is ExecutionEvent.Completed -> "Completed: ${formatExecutionResult(event.result)}"
+                    is ExecutionEvent.Failed -> "Failed: ${event.error}"
+                }
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -199,7 +227,7 @@ fun MainScreen(
         TextField(
             value = inputText,
             onValueChange = { inputText = it },
-            label = { Text("输入指令") },
+            label = { Text("Enter command") },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -209,22 +237,24 @@ fun MainScreen(
             onClick = {
                 if (isLocationIntent(inputText) && !hasLocationPermission()) {
                     requestLocationPermission()
-                    outputText = "请先授予位置权限后重试"
+                    outputText = "Location permission is required. Please grant permission and retry."
                     return@Button
                 }
 
-                coroutineScope.launch {
-                    scheduler.submit(inputText).collect { event ->
-                        outputText = when (event) {
-                            is ExecutionEvent.Started -> "执行中: ${event.skillId}"
-                            is ExecutionEvent.Completed -> "完成: ${event.result}"
-                            is ExecutionEvent.Failed -> "失败: ${event.error}"
-                        }
+                if (isAccessibilityIntent(inputText)) {
+                    if (!accessibilityFeatureEnabled) {
+                        outputText = "Accessibility simulation is disabled in this build."
+                        return@Button
                     }
+                    pendingCommand = inputText
+                    showAccessibilityRiskDialog = true
+                    return@Button
                 }
+
+                executeCommand(inputText)
             }
         ) {
-            Text("执行")
+            Text("Run")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -233,21 +263,17 @@ fun MainScreen(
             onClick = {
                 coroutineScope.launch {
                     clearLearningData()
-                    outputText = "学习数据已清除"
+                    outputText = "Learning data cleared."
                 }
             }
         ) {
-            Text("清除学习数据")
+            Text("Clear learning data")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(
-            onClick = {
-                showHistoryDialog = true
-            }
-        ) {
-            Text("查看最近操作")
+        Button(onClick = { showHistoryDialog = true }) {
+            Text("View recent actions")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -255,20 +281,16 @@ fun MainScreen(
         Button(
             onClick = {
                 triggerRecommendationNow()
-                outputText = "已触发推荐检查（调试）"
+                outputText = "Recommendation check triggered (debug)."
             }
         ) {
-            Text("立即触发推荐")
+            Text("Trigger recommendation now")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(
-            onClick = {
-                showRecommendationDialog = true
-            }
-        ) {
-            Text("查看推荐记录")
+        Button(onClick = { showRecommendationDialog = true }) {
+            Text("View recommendation logs")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -288,6 +310,31 @@ fun MainScreen(
                 onDismiss = { showRecommendationDialog = false }
             )
         }
+
+        if (showAccessibilityRiskDialog) {
+            AlertDialog(
+                onDismissRequest = { showAccessibilityRiskDialog = false },
+                title = { Text("High-Risk Capability") },
+                text = {
+                    Text(
+                        "Screen simulation can trigger unintended operations. Continue only if you understand the risk and accept full responsibility."
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showAccessibilityRiskDialog = false
+                        executeCommand(pendingCommand)
+                    }) {
+                        Text("I Understand")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showAccessibilityRiskDialog = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -295,16 +342,16 @@ fun MainScreen(
 fun HistoryDialog(actions: List<UserAction>, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("最近操作") },
+        title = { Text("Recent Actions") },
         text = {
             LazyColumn {
                 items(actions) { action ->
                     Column(Modifier.padding(vertical = 8.dp)) {
-                        Text("指令: ${action.intent}")
-                        Text("技能: ${action.skillId ?: "无"}")
-                        val status = if (action.success) "✓" else "✗"
-                        Text("结果: $status ${action.resultMessage ?: ""}")
-                        Text("时间: ${formatTime(action.timestamp)}", fontSize = 12.sp)
+                        Text("Intent: ${action.intent}")
+                        Text("Skill: ${action.skillId ?: "N/A"}")
+                        val status = if (action.success) "OK" else "ERROR"
+                        Text("Result: $status ${action.resultMessage ?: ""}")
+                        Text("Time: ${formatTime(action.timestamp)}", fontSize = 12.sp)
                         Divider(modifier = Modifier.padding(top = 6.dp))
                     }
                 }
@@ -312,7 +359,7 @@ fun HistoryDialog(actions: List<UserAction>, onDismiss: () -> Unit) {
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("关闭")
+                Text("Close")
             }
         }
     )
@@ -326,15 +373,15 @@ private fun formatTime(timestamp: Long): String {
 fun RecommendationLogDialog(logs: List<RecommendationLog>, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("推荐记录") },
+        title = { Text("Recommendation Logs") },
         text = {
             LazyColumn {
                 items(logs) { log ->
                     Column(Modifier.padding(vertical = 8.dp)) {
-                        Text("规则: ${log.ruleName} (${log.ruleId})")
-                        Text("内容: ${log.content}")
-                        Text("状态: ${log.status}")
-                        Text("时间: ${formatTime(log.triggerTime)}", fontSize = 12.sp)
+                        Text("Rule: ${log.ruleName} (${log.ruleId})")
+                        Text("Content: ${log.content}")
+                        Text("Status: ${log.status}")
+                        Text("Time: ${formatTime(log.triggerTime)}", fontSize = 12.sp)
                         Divider(modifier = Modifier.padding(top = 6.dp))
                     }
                 }
@@ -342,7 +389,7 @@ fun RecommendationLogDialog(logs: List<RecommendationLog>, onDismiss: () -> Unit
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("关闭")
+                Text("Close")
             }
         }
     )
@@ -350,13 +397,22 @@ fun RecommendationLogDialog(logs: List<RecommendationLog>, onDismiss: () -> Unit
 
 private fun isLocationIntent(text: String): Boolean {
     return text.contains("location", ignoreCase = true) ||
-        text.contains("where", ignoreCase = true) ||
-        text.contains("定位") ||
-        text.contains("位置")
+        text.contains("where", ignoreCase = true)
 }
 
-// 临时主题
+private fun isAccessibilityIntent(text: String): Boolean {
+    return text.trim().startsWith("access", ignoreCase = true)
+}
+
+private fun formatExecutionResult(result: Map<String, Any>): String {
+    val summary = result["summary"] as? String
+    if (!summary.isNullOrBlank()) {
+        return summary
+    }
+    return result.toString()
+}
+
 @Composable
-fun AppHubTheme(content: @Composable () -> Unit) {
+fun AlphaAITheme(content: @Composable () -> Unit) {
     MaterialTheme(content = content)
 }

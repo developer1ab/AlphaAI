@@ -9,10 +9,10 @@ import com.yourname.alphaai.core.Skill
 
 class NotificationSkill(private val context: Context) : Skill {
     override val id = "notification.show"
-    override val name = "显示通知"
-    override val description = "在状态栏显示一条通知"
+    override val name = "Show notification"
+    override val description = "Display a status bar notification"
 
-    private val channelId = "apphub_notifications"
+    private val channelId = "alphaai_notifications"
     private val notificationManager =
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -21,7 +21,7 @@ class NotificationSkill(private val context: Context) : Skill {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 channelId,
-                "AppHub 通知",
+                "AlphaAI Notifications",
                 NotificationManager.IMPORTANCE_DEFAULT
             )
             notificationManager.createNotificationChannel(channel)
@@ -30,8 +30,8 @@ class NotificationSkill(private val context: Context) : Skill {
 
     override suspend fun execute(params: Map<String, Any>): Result<Map<String, Any>> {
         return try {
-            val title = params["title"] as? String ?: "AppHub"
-            val content = params["content"] as? String ?: "您有一条新消息"
+            val title = params["title"] as? String ?: "AlphaAI"
+            val content = params["content"] as? String ?: "You have a new message."
 
             val notification = NotificationCompat.Builder(context, channelId)
                 .setContentTitle(title)

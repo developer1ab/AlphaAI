@@ -1,8 +1,8 @@
 package com.yourname.alphaai.recommendation
 
-import com.yourname.alphaai.data.AppHubDatabase
+import com.yourname.alphaai.data.AlphaAIDatabase
 
-class RecentActionContext(private val database: AppHubDatabase) {
+class RecentActionContext(private val database: AlphaAIDatabase) {
     suspend fun getLastSkillId(): String? {
         return database.userActionDao().getLastSuccessSkillId()
     }

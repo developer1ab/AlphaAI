@@ -11,15 +11,15 @@ import kotlinx.coroutines.withContext
 
 class IntentSkill(private val context: Context) : Skill {
     override val id = "intent.execute"
-    override val name = "执行Intent操作"
-    override val description = "通过Intent打开应用、网址、拨号、分享等"
+    override val name = "Execute intent"
+    override val description = "Open apps, URLs, dialer, and share targets via Android Intent"
 
     override suspend fun execute(params: Map<String, Any>): Result<Map<String, Any>> {
         return try {
             val intent = buildIntent(params)
             val packageManager = context.packageManager
             if (intent.resolveActivity(packageManager) == null) {
-                return Result.failure(Exception("没有应用可以处理该操作"))
+                return Result.failure(Exception("No app can handle this intent."))
             }
 
             if ((intent.flags and Intent.FLAG_ACTIVITY_NEW_TASK) == 0) {

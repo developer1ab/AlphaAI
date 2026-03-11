@@ -12,7 +12,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
     version = 2,
     exportSchema = false
 )
-abstract class AppHubDatabase : RoomDatabase() {
+abstract class AlphaAIDatabase : RoomDatabase() {
     abstract fun userActionDao(): UserActionDao
     abstract fun appUsageDao(): AppUsageDao
     abstract fun userProfileDao(): UserProfileDao
@@ -20,7 +20,7 @@ abstract class AppHubDatabase : RoomDatabase() {
 
     companion object {
         @Volatile
-        private var INSTANCE: AppHubDatabase? = null
+        private var INSTANCE: AlphaAIDatabase? = null
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(database: SupportSQLiteDatabase) {
@@ -39,12 +39,12 @@ abstract class AppHubDatabase : RoomDatabase() {
             }
         }
 
-        fun getInstance(context: Context): AppHubDatabase {
+        fun getInstance(context: Context): AlphaAIDatabase {
             return INSTANCE ?: synchronized(this) {
                 Room.databaseBuilder(
                     context.applicationContext,
-                    AppHubDatabase::class.java,
-                    "apphub.db"
+                    AlphaAIDatabase::class.java,
+                    "alphaai.db"
                 )
                     .addMigrations(MIGRATION_1_2)
                     .build()

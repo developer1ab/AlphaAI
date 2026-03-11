@@ -14,17 +14,17 @@ import kotlin.coroutines.resumeWithException
 
 class LocationSkill(private val context: Context) : Skill {
     override val id = "location.get"
-    override val name = "获取位置"
-    override val description = "获取当前设备的经纬度"
+    override val name = "Get location"
+    override val description = "Get current device latitude and longitude"
 
     override suspend fun execute(params: Map<String, Any>): Result<Map<String, Any>> {
         return try {
-            // 1. 检查位置权限
+            // 1) Check location permission.
             if (!hasLocationPermission()) {
-                return Result.failure(SecurityException("缺少位置权限"))
+                return Result.failure(SecurityException("Location permission is required."))
             }
 
-            // 2. 获取位置
+            // 2) Fetch location.
             val location = getCurrentLocation()
 
             Result.success(
@@ -48,13 +48,13 @@ class LocationSkill(private val context: Context) : Skill {
         val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
         val cancellationTokenSource = CancellationTokenSource()
 
-        // 请求当前位置（高精度）
+        // Request current location with high accuracy.
         fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cancellationTokenSource.token)
             .addOnSuccessListener { location ->
                 if (location != null) {
                     continuation.resume(location)
                 } else {
-                    continuation.resumeWithException(Exception("无法获取位置"))
+                    continuation.resumeWithException(Exception("Unable to fetch location."))
                 }
             }
             .addOnFailureListener { exception ->

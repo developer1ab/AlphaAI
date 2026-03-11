@@ -1,0 +1,11 @@
+version: "3.9"
+services:
+  alphaai-gateway:
+    build:
+      context: ./gateway/docker
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./gateway/docker/.env
+    restart: unless-stopped

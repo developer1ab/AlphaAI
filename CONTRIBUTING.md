@@ -1,4 +1,4 @@
-# Contributing to AppHub
+# Contributing to AlphaAI
 
 Thanks for your interest in contributing.
 
