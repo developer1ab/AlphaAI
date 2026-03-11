@@ -1,0 +1,43 @@
+[
+  {
+    "id": "morning_open_weather",
+    "name": "Morning Weather Suggestion",
+    "description": "Suggest checking weather in morning workdays.",
+    "condition": {
+      "timeRange": ["07:00", "09:00"],
+      "dayOfWeek": [1, 2, 3, 4, 5]
+    },
+    "action": {
+      "type": "suggest",
+      "content": "Good morning. Want to check today's weather?",
+      "intent": "weather today",
+      "icon": "ic_weather"
+    },
+    "weight": 0.8,
+    "feedbackWeights": {
+      "accept": 0.1,
+      "ignore": -0.02,
+      "dismiss": -0.05
+    }
+  },
+  {
+    "id": "after_open_settings",
+    "name": "Settings Follow-up",
+    "description": "Suggest opening settings tools after settings usage.",
+    "condition": {
+      "lastActionSkill": "intent.execute"
+    },
+    "action": {
+      "type": "suggest",
+      "content": "Need another quick settings action?",
+      "intent": "open settings",
+      "icon": "ic_settings"
+    },
+    "weight": 0.5,
+    "feedbackWeights": {
+      "accept": 0.05,
+      "ignore": -0.01,
+      "dismiss": -0.03
+    }
+  }
+]
